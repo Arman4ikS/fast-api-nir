@@ -19,6 +19,7 @@ import tensorflow as tf  # Импорт библиотеки TensorFlow для �
 from keras.models import Sequential  # Импорт модели Sequential из TensorFlow/Keras
 from tensorflow.keras import layers  # Импорт модуля layers из TensorFlow/Keras для создания слоев нейронных сетей
 import warnings  # Импорт модуля warnings для управления предупреждениями
+import pickle
 
 # Отключение предупреждений
 warnings.simplefilter('ignore')
@@ -286,7 +287,7 @@ print("Processed validation data shape: ", processed_val_data.shape)
 print("Processed train targets shape: ", processed_train_targets.shape)
 print("Processed validation targets shape: ", processed_val_targets.shape)
 
-
+'''
 # Определение функции для создания скомпилированной модели
 def create_compiled_model():
     model = Sequential([
@@ -333,10 +334,10 @@ def scheduler(epoch):
 
 # Создание callback для изменения learning rate
 callback = tf.keras.callbacks.LearningRateScheduler(scheduler, verbose=1)
-
+'''
 # Создание и компиляция модели
-model = create_compiled_model()
-
+#model = create_compiled_model()
+model = pickle.load('model.pkl')
 # Обучение модели
 history = model.fit(processed_train_data, processed_train_targets, epochs=10,
                     validation_data=(processed_val_data, processed_val_targets),
@@ -358,7 +359,7 @@ RMSE = np.sqrt(mean_squared_error(true_rul, mean_pred_for_each_engine))
 print("RMSE: ", RMSE)
 
 # Сохранение модели
-tf.keras.models.save_model(model, "FD001_LSTM_piecewise_RMSE_" + str(np.round(RMSE, 4)) + ".h5")
+#tf.keras.models.save_model(model, "FD001_LSTM_piecewise_RMSE_" + str(np.round(RMSE, 4)) + ".h5")
 
 # Выборка индексов последних примеров из каждого двигателя
 indices_of_last_examples = np.cumsum(num_test_windows_list) - 1
