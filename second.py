@@ -337,7 +337,9 @@ callback = tf.keras.callbacks.LearningRateScheduler(scheduler, verbose=1)
 '''
 # Создание и компиляция модели
 #model = create_compiled_model()
-model = pickle.load('model.pkl')
+f = open('model.pkl','r')
+model = pickle.load(f)
+f.close()
 # Обучение модели
 history = model.fit(processed_train_data, processed_train_targets, epochs=10,
                     validation_data=(processed_val_data, processed_val_targets),

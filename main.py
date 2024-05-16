@@ -9,11 +9,11 @@ from sklearn.linear_model import LinearRegression  # Импорт линейно
 from sklearn.preprocessing import StandardScaler  # Импорт стандартизатора данных из scikit-learn
 from pylab import rcParams  # Импорт настроек рисования графиков
 import math  # Импорт модуля math для математических операций
-#import xgboost  # Импорт библиотеки XGBoost для градиентного бустинга
+import xgboost  # Импорт библиотеки XGBoost для градиентного бустинга
 import time  # Импорт модуля time для работы со временем
-#from tqdm import tqdm  # Импорт библиотеки tqdm для отображения прогресса выполнения операций
-#import keras.models  # Импорт модуля keras.models для работы с нейронными сетями
-#import keras.layers  # Импорт модуля keras.layers для создания слоев нейронных сетей
+from tqdm import tqdm  # Импорт библиотеки tqdm для отображения прогресса выполнения операций
+import keras.models  # Импорт модуля keras.models для работы с нейронными сетями
+import keras.layers  # Импорт модуля keras.layers для создания слоев нейронных сетей
 from sklearn.model_selection import train_test_split  # Импорт функции для разделения данных на обучающую и тестовую выборки
 import tensorflow as tf  # Импорт библиотеки TensorFlow для создания и обучения нейронных сетей
 from keras.models import Sequential  # Импорт модели Sequential из TensorFlow/Keras
@@ -138,7 +138,7 @@ def process_targets(data_length, early_rul=None):
 
 # Определение функции для обработки входных данных с целями
 def process_input_data_with_targets(input_data, target_data=None, window_length=1, shift=1):
-    num_batches = np.int(np.floor((len(input_data) - window_length) / shift)) + 1
+    num_batches = int(np.floor((len(input_data) - window_length) / shift)) + 1
     num_features = input_data.shape[1]
     output_data = np.repeat(np.nan, repeats=num_batches * window_length * num_features).reshape(num_batches,
                                                                                                 window_length,
@@ -157,7 +157,7 @@ def process_input_data_with_targets(input_data, target_data=None, window_length=
 
 # Определение функции для обработки тестовых данных
 def process_test_data(test_data_for_an_engine, window_length, shift, num_test_windows=1):
-    max_num_test_batches = np.int(np.floor((len(test_data_for_an_engine) - window_length) / shift)) + 1
+    max_num_test_batches = int(np.floor((len(test_data_for_an_engine) - window_length) / shift)) + 1
     if max_num_test_batches < num_test_windows:
         required_len = (max_num_test_batches - 1) * shift + window_length
         batched_test_data_for_an_engine = process_input_data_with_targets(test_data_for_an_engine[-required_len:, :],
