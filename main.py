@@ -6,7 +6,7 @@ import base64
 
 app = FastAPI()
 
-#app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
@@ -61,7 +61,6 @@ async def upload_files(testData: UploadFile = File(...), trueRUL: UploadFile = F
     </body>
     </html>"""
     return HTMLResponse(content=html_content2, status_code=200)
-
 
 # Запуск сервера
 if __name__ == "__main__":
