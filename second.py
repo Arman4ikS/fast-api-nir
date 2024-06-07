@@ -1,10 +1,12 @@
-import matplotlib.pyplot as plt
-import pickle
 import numpy as np
 import pandas as pd
+import os
+import matplotlib.pyplot as plt
+import tensorflow as tf
 from sklearn.preprocessing import StandardScaler
 from io import BytesIO
-import os
+import keras
+from keras import models
 
 
 def processing(testData, trueRUL):
@@ -80,9 +82,7 @@ def processing(testData, trueRUL):
 
     processed_test_data = np.concatenate(processed_test_data)
 
-
-    with open('model.pkl', 'rb') as f:
-        model = pickle.load(f)
+    model = keras.models.load_model("model.keras")
 
     rul_pred = model.predict(processed_test_data).reshape(-1)
 
