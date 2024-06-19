@@ -1,39 +1,36 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, File, UploadFile, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from second import processing
 import base64
 import sqlite3
+import os
 
 app = FastAPI()
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-def save_numbers_to_db(numbers, db_name='results.db'):
-    # Подключаемся к базе данных (если базы данных не существует, она будет создана)
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
+def create_table(database="results.db", table="test_FD001"):
+    db = sqlite3.connect(database)
+    c = db.cursor()
+    c.execute(f"""CREATE TABLE {table[:-4]} (
+        value integer          
+    )""")
+    db.commit()
+    db.close()
 
-    # Создаем таблицу, если она не существует
-    cursor.execute(f'''
-        CREATE TABLE IF NOT EXISTS results (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            number INTEGER NOT NULL
-        )
-    ''')
+def add_to_table(data, database, table):
+    db = sqlite3.connect(database)
+    c = db.cursor()
+    c.executemany(f"INSERT INTO {table[:-4]} (value) VALUES (?)", [(value,) for value in data])
+    db.commit()
+    db.close()
 
-    # Вставляем числа из массива в таблицу
-    cursor.executemany(f'''
-        INSERT INTO results (number) VALUES (?)
-    ''', [(number,) for number in numbers])
-
-    # Сохраняем изменения и закрываем соединение
-    conn.commit()
-    conn.close()
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
-    html_content = f"""<!DOCTYPE html>
+    html_content=f"""
+    <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8">
@@ -41,19 +38,21 @@ async def read_index():
         <title>Загрузка файлов</title>
     </head>
     <body>
-        <h2>Загрузка файлов</h2>
-        <form action="/submit" method="post" enctype="multipart/form-data">
-            <label for="testData">Test data:</label><br>
-            <input type="file" id="testData" name="testData" accept=".txt"><br><br>
-    
-            <label for="trueRUL">True RUL:</label><br>
-            <input type="file" id="trueRUL" name="trueRUL" accept=".txt"><br><br>
-    
-            <input type="submit" value="Отправить">
-        </form>
+        <div class="upload-container">
+            <h2>Загрузка файлов</h2>
+            <form action="/submit" method="post" enctype="multipart/form-data">
+                <label for="testData">Test data:</label><br>
+                <input type="file" id="testData" name="testData" accept=".txt" required><br><br>
+
+                <label for="trueRUL">True RUL:</label><br>
+                <input type="file" id="trueRUL" name="trueRUL" accept=".txt" required><br><br>
+
+                <input type="submit" value="Отправить">
+            </form>
+        </div>
     </body>
     </html>"""
-    return HTMLResponse(content=html_content, status_code=200)
+    return HTMLResponse(content=html_content,status_code=200)
 
 
 @app.post("/submit/")
@@ -63,7 +62,8 @@ async def upload_files(testData: UploadFile = File(...), trueRUL: UploadFile = F
     buffer_bytes, preds = processing(testData_contents, trueRUL_contents)
     base64_encoded_image = base64.b64encode(buffer_bytes.getvalue()).decode()
     preds = preds.tolist()
-    save_numbers_to_db(numbers, 'results.db')
+    create_table("results.db", table=testData.filename)
+    add_to_table(preds, "results.db", testData.filename)
     index_row = ''.join(f'<th>{i}</th>' for i in range(1, len(preds) + 1))
     data_row = ''.join(f'<td>{int(value)}</td>' for value in preds)
 
@@ -86,39 +86,33 @@ async def upload_files(testData: UploadFile = File(...), trueRUL: UploadFile = F
     </html>"""
     return HTMLResponse(content=html_content2, status_code=200)
 
-def fetch_numbers_from_db(db_name='numbers.db', table_name='numbers_table'):
-    conn = sqlite3.connect(db_name)
-    cursor = conn.cursor()
-    cursor.execute(f'SELECT number FROM {table_name}')
-    numbers = cursor.fetchall()
-    conn.close()
-    return numbers
-@app.post("/results/")
-def generate_html(numbers = fetch_numbers_from_db(results.db)):
-    html_content = '''
-    <!DOCTYPE html>
-    <html>
-    <head>
-        <title>Numbers from Database</title>
-    </head>
-    <body>
-        <h1>Numbers</h1>
-        <table border="1">
-            <tr><th>ID</th><th>Number</th></tr>
-    '''
+@app.get("/history/{table}")
+def generate_html_table_from_db(table: str):
+    db = sqlite3.connect("results.db")
+    c = db.cursor()
+    c.execute(f"SELECT * FROM {table}")
+    rows = c.fetchall()
+    db.commit()
+    db.close()
+    # Генерируем HTML для таблицы
+    html_content = "<table border='1'>\n"
 
-    for idx, number in enumerate(numbers, start=1):
-        html_content += f'<tr><td>{idx}</td><td>{number[0]}</td></tr>\n'
+    # Заголовки столбцов
+    html_content += "<tr>"
+    html_content += "<th>engine ID</th>"
+    html_content += "<th>RUL</th>"
+    html_content += "</tr>\n"
+    i = 0
+    for row in rows:
+        html_content += "<tr>"
+        i += 1
+        for value in row:
+            html_content += f"<td>{i}</td>"
+            html_content += f"<td>{round(value)}</td>"
+        html_content += "</tr>\n"
+    html_content += "</table>"
+    return HTMLResponse(content=html_content, status_code=200)
 
-    html_content += '''
-        </table>
-    </body>
-    </html>
-    '''
-    return HTMLResponse(content=html_content2, status_code=200)
-
-# Запуск сервера
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run(app)

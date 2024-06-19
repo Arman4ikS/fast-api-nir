@@ -82,7 +82,7 @@ def processing(testData, trueRUL):
 
     processed_test_data = np.concatenate(processed_test_data)
 
-    model = keras.models.load_model("/app/model.h5")
+    model = keras.models.load_model("app/model.h5")
 
     rul_pred = model.predict(processed_test_data).reshape(-1)
 
